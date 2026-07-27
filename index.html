@@ -59,7 +59,23 @@ header{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px s
 .iconbtn:hover{border-color:var(--acc);color:var(--tx)}
 .tabs{max-width:var(--maxw);margin:0 auto;display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px}
 .tab{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:10px;
-  background:var(--card);border:1px solid var(--line);color:var(--tx2);font-size:12.5px;font-weight:700;transition:.13s}
+  background:var(--card);border:1px solid var(--line);color:var(--tx2);font-size:12.5px;font-weight:700;transition:.13s;
+  flex:0 0 auto;white-space:nowrap}
+/* On a phone the strip must never become the page. Fifteen wrapped tabs measured
+   709px of a 812px viewport — 87% of the screen, and `header` is sticky, so it
+   followed you all the way down. One scrolling row instead: the header stays
+   ~100px, every topic is still one tap away, and Core's ✓/ring progress map
+   survives intact (a dropdown would have thrown it away). drawTabs() scrolls the
+   active tab into view so "where am I" is never off-screen. */
+@media(max-width:700px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent 100%);
+            mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent 100%)}
+  .tabs.atEnd{-webkit-mask-image:none;mask-image:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{scroll-snap-align:start}
+}
 .tab:hover{border-color:var(--line2);color:var(--tx)}
 .tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .tab .dot{width:6px;height:6px;border-radius:50%;background:var(--good);flex:0 0 auto}
@@ -4022,6 +4038,13 @@ function offers(){
     const total=totalLinks+(core?0:d.qs.length+d.ms.length);
     const due=dueLinks+(core?0:d.dueQs.length+d.dueMs.length);
     const frac=total?(due/total):0;
+    /* `nw` = never graded once (SRS `last` is still 0). Without it "due" cannot
+       tell a fresh install from one where every box has lapsed back — both read
+       due===total — so the hub had no way to avoid greeting a new student with
+       "579 due · 0% in good standing", a debt they never ran up. Reported, not
+       inferred: an app that omits `nw` gets exactly the old rendering. */
+    const nwLinks=links.filter(l=>!srsOf(linkKey(l)).last).length;
+    const nw=nwLinks+(core?0:d.qs.filter(x=>!x.s.last).length+d.ms.filter(x=>!x.s.last).length);
     /* Chains lead — they carry the causal spine. A couple of the lecturer's own
        SAQs and one recognition MCQ ride along, because formulas, lists and
        discriminations are not chains (blueprint: "when to diverge"). */
@@ -4038,7 +4061,7 @@ function offers(){
         sr:{box:x.s.box||0,level:1,lapses:0} })));
     return { label:t.icon+' '+t.name, topic:'inpharm-'+t.id,
       assess:ASSESS_OF[t.id]||['pharm-final'], evPerMin:+(0.14+0.34*frac).toFixed(2),
-      kind:'cards', cards:cards, counts:{ due:due, total:total } };
+      kind:'cards', cards:cards, counts:{ due:due, total:total, nw:nw } };
   });
   /* ── EVERY topic is bid, not the top five (2026-07-27) ────────────────────
      This used to `.slice(0,5)`, per the spec's "≤5 decks" rule, with a
@@ -4281,6 +4304,24 @@ const TABS=()=>[{id:'start',icon:'🧭',name:'Start Here'}]
   .concat((DATA.topics||[]).map(x=>({id:x.id,icon:x.icon,name:x.name})))
   .concat(isCore()?[]:[{id:'cases',icon:'📁',name:'Case Studies'}]);
 
+/* Keeps the one-row mobile strip honest: the selected tab is scrolled into view
+   (silently on first paint, smoothly thereafter), and the right-edge fade is
+   dropped once there is nothing further to scroll to, so it reads as "more this
+   way" rather than as permanent chrome. No-ops on wide screens, where the strip
+   still wraps and nothing overflows. */
+let tabStripPainted=false;
+function syncTabStrip(){
+  const el=$('#tabs'); if(!el) return;
+  const fade=()=>el.classList.toggle('atEnd', el.scrollWidth-el.clientWidth-el.scrollLeft<=1);
+  if(!el.dataset.bound){ el.dataset.bound='1'; el.addEventListener('scroll',fade,{passive:true}); }
+  const on=el.querySelector('.tab.on');
+  if(on&&el.scrollWidth>el.clientWidth){
+    const to=Math.max(0,on.offsetLeft-(el.clientWidth-on.offsetWidth)/2);
+    el.scrollTo({left:to,behavior:tabStripPainted?'smooth':'auto'});
+  }
+  tabStripPainted=true; fade();
+}
+
 function tabs(){
   /* In Core the tab strip doubles as the progress map: a ✓ replaces the icon on
      a topic whose spine is held, and the one you're up to is ringed. The dot
@@ -4299,6 +4340,7 @@ function tabs(){
   $('#tabs').querySelectorAll('[data-t]').forEach(b=>{
     b.onclick=()=>{ view=b.dataset.t; jset('tab',view); draw(); window.scrollTo(0,0); };
   });
+  syncTabStrip();
   const mb=$('#modeBtn');
   if(mb){ mb.textContent=isCore()?'Core':'Full'; mb.className='modeBtn '+(isCore()?'core':'full'); }
 }
@@ -4864,9 +4906,11 @@ function topicView(t){
 
   <div class="card">
     <h2>📋 Test it</h2>
-    <div class="big-idea">${dueN} of ${chains.length} pathways are due · ${held} of ${links.length} relations have been recalled at least once.</div>
+    <div class="big-idea">${held===0
+      ?`${chains.length} pathway${chains.length===1?'':'s'} to learn here, built from ${links.length} relations. Nothing is due yet — you haven't started this topic.`
+      :`${dueN} of ${chains.length} pathways are due · ${held} of ${links.length} relations have been recalled at least once.`}</div>
     <div class="ctarow">
-      <button class="cta" data-drill="${t.id}">⚡ Drill what's due (${dueN||chains.length})</button>
+      <button class="cta" data-drill="${t.id}">${held===0?`⚡ Start this topic (${chains.length})`:`⚡ Drill what's due (${dueN||chains.length})`}</button>
       <button class="cta ghost" data-drill="${t.id}" data-all="1">Drill all ${chains.length}</button>
     </div>
 
@@ -4999,7 +5043,7 @@ function coreStartView(){
     </div>
     <div class="coreRows">${rows}</div>
     <div class="ctarow" style="margin-top:14px">
-      <button class="cta ghost" data-drill="*">⚡ Drill everything that's due</button>
+      <button class="cta ghost" data-drill="*">${held===0?'⚡ Start drilling':'⚡ Drill everything that\'s due'}</button>
     </div>
   </div>
 
@@ -5032,7 +5076,9 @@ function startView(){
     return `<tr><td><b>${t.icon} ${esc(t.name)}</b><div class="bar"><i style="width:${pct}%"></i></div></td>
       <td>${ls.length} relations<br/><span style="color:var(--tx3)">${cs.length} pathways</span></td>
       <td>${(t.recall||[]).length} SAQ<br/><span style="color:var(--tx3)">${(t.mcq||[]).length} MCQ</span></td>
-      <td>${due?'<b style="color:var(--hard)">'+due+' due</b>':'<span style="color:var(--good)">rested</span>'}</td></tr>`;
+      <td>${held===0?'<span style="color:var(--tx3)">not started</span>'
+           :due?'<b style="color:var(--hard)">'+due+' due</b>'
+           :'<span style="color:var(--good)">rested</span>'}</td></tr>`;
   }).join('');
   const nSaq=(DATA.topics||[]).reduce((s,t)=>s+(t.recall||[]).length,0);
   const nMcq=(DATA.topics||[]).reduce((s,t)=>s+(t.mcq||[]).length,0);
@@ -5051,15 +5097,24 @@ function startView(){
     time. Nothing on the map brightens unless you have genuinely recalled it.</p>
 
     <div class="eyebrow">Where you stand</div>
-    <div class="grid2">
+    ${/* Nothing graded yet means nothing is overdue — "180 due right now, of 180"
+          and "0 / 290" are arithmetically true and read as a debt you never ran
+          up. Same numbers, honest noun: on a cold start this is a menu, not a
+          backlog. It reverts the moment one card is graded. */
+      allHeld===0 ? `<div class="grid2">
+      <div class="stat"><div class="big">${allChains}</div><div class="cap">pathways to learn, across ${(DATA.topics||[]).length} topics</div></div>
+      <div class="stat"><div class="big">${allLinks}</div><div class="cap">relations waiting — none started yet</div></div>
+    </div>
+    <p class="fineprint" style="margin:10px 0 0;color:var(--tx3)">Nothing is overdue: you haven't started. Pick any topic below, or drill the first pathways now — five minutes is a real start.</p>`
+      : `<div class="grid2">
       <div class="stat"><div class="big">${allDueChains}</div><div class="cap">pathways due right now, of ${allChains}</div></div>
       <div class="stat"><div class="big">${allHeld}<span style="font-size:15px;color:var(--tx3)"> / ${allLinks}</span></div><div class="cap">relations recalled at least once</div></div>
-    </div>
+    </div>`}
     <div class="scrollx" style="margin-top:12px"><table>
       <thead><tr><th>Topic</th><th>Map</th><th>Questions</th><th>Status</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
     <div class="ctarow" style="margin-top:14px">
-      <button class="cta" data-drill="*">⚡ Drill everything that's due</button>
+      <button class="cta" data-drill="*">${allHeld===0?'⚡ Start drilling':'⚡ Drill everything that\'s due'}</button>
     </div>
   </div>
 
