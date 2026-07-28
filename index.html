@@ -57,24 +57,38 @@ header{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px s
   display:inline-flex;align-items:center;justify-content:center;font-size:15px;color:var(--tx2);
   flex:0 0 auto;padding:0 10px;text-decoration:none;transition:.15s}
 .iconbtn:hover{border-color:var(--acc);color:var(--tx)}
-.tabs{max-width:var(--maxw);margin:0 auto;display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px}
+.tabbar{max-width:var(--maxw);margin:0 auto;display:flex;align-items:center;gap:6px;padding:0 16px 10px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
 .tab{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:10px;
-  background:var(--card);border:1px solid var(--line);color:var(--tx2);font-size:12.5px;font-weight:700;transition:.13s;
-  flex:0 0 auto;white-space:nowrap}
-/* On a phone the strip must never become the page. Fifteen wrapped tabs measured
-   709px of a 812px viewport — 87% of the screen, and `header` is sticky, so it
-   followed you all the way down. One scrolling row instead: the header stays
-   ~100px, every topic is still one tap away, and Core's ✓/ring progress map
-   survives intact (a dropdown would have thrown it away). drawTabs() scrolls the
-   active tab into view so "where am I" is never off-screen. */
-@media(max-width:700px){
+  background:var(--card);border:1px solid var(--line);color:var(--tx2);font-size:12.5px;font-weight:700;
+  flex:0 0 auto;white-space:nowrap;transition:.13s}
+/* The index button only exists where the strip stops being a full list — see
+   the rail rules below. */
+.tabAll{display:none}
+
+/* ── the tab RAIL on narrow screens ───────────────────────────────────────
+   Ported byte for byte from hs2-module1 (see [[porting-not-reimplementing]]):
+   this hub had the identical bug, worse — fifteen wrapped chips measured 709px
+   of an 812px viewport, 87% of the screen, under a sticky header that then
+   followed you down the page. Same cure: on a phone the strip stops wrapping,
+   one row that scrolls sideways, always centred on where you are, with ☰ beside
+   it for the whole list at once. Header cost drops to 111px. */
+@media(max-width:760px){
+  .tabbar{gap:8px;padding:0 12px 8px}
   .tabs{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;
-    scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;
-    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent 100%);
-            mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent 100%)}
-  .tabs.atEnd{-webkit-mask-image:none;mask-image:none}
+    scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;padding-bottom:1px}
   .tabs::-webkit-scrollbar{display:none}
-  .tab{scroll-snap-align:start}
+  /* An edge fades only while there is something past it — a permanent fade
+     would dim the selected chip whenever the rail is parked at its end. */
+  .tabs.fadeL{-webkit-mask-image:linear-gradient(to right,transparent,#000 20px);
+    mask-image:linear-gradient(to right,transparent,#000 20px)}
+  .tabs.fadeR{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 20px),transparent);
+    mask-image:linear-gradient(to right,#000 calc(100% - 20px),transparent)}
+  .tabs.fadeL.fadeR{-webkit-mask-image:linear-gradient(to right,transparent,#000 20px,#000 calc(100% - 20px),transparent);
+    mask-image:linear-gradient(to right,transparent,#000 20px,#000 calc(100% - 20px),transparent)}
+  .tab{scroll-snap-align:center;min-height:38px;font-size:12px;padding:0 11px}
+  .tabAll{display:inline-flex}
 }
 .tab:hover{border-color:var(--line2);color:var(--tx)}
 .tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
@@ -165,6 +179,16 @@ header{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px s
 .stModeB .why{margin:5px 0 0;font-size:12.5px;color:var(--tx2);line-height:1.5}
 .stModeB .meta{margin:8px 0 0;font-size:11.5px;font-weight:700;color:var(--acc-tx);letter-spacing:.2px;line-height:1.45}
 @media(max-width:520px){ .stModeB{padding:14px} .sheet{padding:18px} }
+/* ── the topic index sheet ────────────────────────────────────────────────
+   What ☰ opens on a phone: the whole strip as a list, in course order. It
+   borrows Core's rows wholesale (.coreRow*) so the two lists of topics in this
+   hub are visibly the same list. */
+.pickList{max-height:min(62vh,520px);overflow-y:auto;margin:0 -4px;padding:0 4px}
+.coreRow.cur{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,var(--card2))}
+.coreRow.cur .coreRowNm{color:var(--tx)}
+.pickHere{font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--acc-tx);flex:0 0 auto}
+.coreRow .dot{width:6px;height:6px;border-radius:50%;background:var(--good);flex:0 0 auto}
 
 /* ---- cards ---- */
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 18px;margin:0 0 14px}
@@ -639,7 +663,10 @@ html.metro-fs,html.metro-fs body{overflow:hidden}
     <button class="modeBtn" id="modeBtn" title="Core or Full — switch any time, nothing is lost">Full</button>
     <button class="iconbtn" id="btnTheme" title="Light / dark">◐</button>
   </div>
-  <nav class="tabs" id="tabs"></nav>
+  <div class="tabbar">
+    <nav class="tabs" id="tabs" aria-label="Topics"></nav>
+    <button class="iconbtn tabAll" id="btnTopics" title="All topics" aria-label="All topics">☰</button>
+  </div>
 </header>
 <div class="wrap" id="view"></div>
 <div class="foot">
@@ -706,7 +733,7 @@ const DATA={ topics:[
 
 /* ──────────────────────── M1 · Concepts, part 1 ──────────────────────── */
 {
- id:'concepts1', icon:'🧪', name:'What Pharmacology Is', chapters:'Module 1 · Concepts (1) · Knights ch. 1',
+ id:'concepts1', icon:'🧪', name:'What Pharmacology Is', short:'What Pharmacology Is', chapters:'Module 1 · Concepts (1) · Knights ch. 1',
  tagline:'Four branches, three names for every drug, two regulators — and one reason the whole course exists: you are the last person between the prescription and the patient.',
  gist:`Pharmacology is <b>the study of drugs</b> — where they come from, what they do, and how they are used. A <b>medication</b> is any substance used to prevent, diagnose, relieve, treat or cure disease, or to affect how the body works. The course splits the subject into four branches: <b>pharmacokinetics</b> (what the body does to the drug), <b>pharmacodynamics</b> (what the drug does to the body), <b>pharmacotherapeutics</b> (using medicines on a real patient) and <b>toxicology</b> (the harm side). Every drug carries three names, and the one you must know is the <b>generic</b> name — because brand names multiply, and mixing them up is how people get hurt.`,
  primer:`The lecture opens with a definition worth memorising word for word: pharmacology is <i>"the study of drugs,
@@ -857,7 +884,7 @@ const DATA={ topics:[
 
 /* ──────────────────── M1 · Concepts, part 2 ──────────────────── */
 {
- id:'concepts2', icon:'💊', name:'Classifying, Sourcing & Routes', chapters:'Module 1 · Concepts (2) · Knights ch. 1–2',
+ id:'concepts2', icon:'💊', name:'Classifying, Sourcing & Routes', short:'Classes & Routes', chapters:'Module 1 · Concepts (2) · Knights ch. 1–2',
  tagline:'Three ways to classify a drug, two websites you will use for the rest of your career, five routes in and a shelf of formulations — plus the abbreviation table you are expected to just know.',
  gist:`Medicines that behave alike get grouped together. This course wants three grouping systems: <b>clinical use</b> (what it is prescribed for — analgesic, antibiotic), <b>mechanism of action</b> (how it works — proton pump inhibitor), and <b>legal classification</b> under NZ law (prescription, restricted, pharmacy-only, general sale). When you need to look a drug up, the two free NZ sources are <b>Medsafe</b> and the <b>NZ Formulary</b> — not Google, not .com sites, not AI. The <b>route</b> is how the drug gets in, and it changes how fast the drug acts and how strong the response is. The <b>formulation</b> is the physical product — and liquids absorb fastest because they don't have to disintegrate first.`,
  primer:`Classification first. Drugs can be grouped from many angles — source, chemical name, mechanism, clinical use, body system,
@@ -1042,7 +1069,7 @@ const DATA={ topics:[
 
 /* ──────────────────── M2 · Medication Calculations ──────────────────── */
 {
- id:'calcs', icon:'🧮', name:'Medication Calculations', chapters:'Module 2 · Calculations (Parts 1 & 2)',
+ id:'calcs', icon:'🧮', name:'Medication Calculations', short:'Calculations', chapters:'Module 2 · Calculations (Parts 1 & 2)',
  tagline:'Two formulas, one checklist, and a test you must score 100% on — three times over, or you fail the course.',
  gist:`Nearly every calculation in this course uses <b>one formula</b>: what you <b>want</b> ÷ what you have <b>got</b> × the <b>volume</b> it comes in. Body-weight dosing uses a second: <b>mg/kg × weight</b>. IV drip rates use a third: <b>(volume × drop factor) ÷ (hours × 60)</b>. The traps are not the maths — they are (1) units that don't match, so convert first; (2) calculator order of operations, so multiply top and bottom BEFORE you divide; and (3) rounding, which you do for drip rates and never for volumes or tablets.`,
  primer:`The <b>Student Guide</b> sets the stakes before any maths: <i>"You must demonstrate 100% competency in medication and
@@ -1219,7 +1246,7 @@ const DATA={ topics:[
 
 /* ──────────────── M3 · Pharmacokinetics 1 ──────────────── */
 {
- id:'pk1', icon:'➡️', name:'PK 1 — Absorption & Distribution', chapters:'Module 3 · PK (1) · Knights ch. 4–5',
+ id:'pk1', icon:'➡️', name:'PK 1 — Absorption & Distribution', short:'PK 1 — Absorption', chapters:'Module 3 · PK (1) · Knights ch. 4–5',
  tagline:'The drug has to get in, and then get to where it is needed — and the liver takes a cut on the way past.',
  gist:`Pharmacokinetics is <b>what the body does to the drug</b>, in four phases: <b>A</b>bsorption, <b>D</b>istribution, <b>M</b>etabolism, <b>E</b>xcretion. <b>Absorption</b> is the drug reaching the bloodstream unchanged — every route needs it except IV, which is already there. <b>Distribution</b> is the drug moving between blood and tissues. Two ideas dominate distribution: <b>bioavailability</b> (how much of the dose actually made it into the blood) and the <b>hepatic first-pass effect</b> (the liver breaks down part of an oral dose before it ever reaches the body). Only <b>free, unbound</b> drug can leave the blood and do anything.`,
  primer:`Pharmacokinetics is "what the body does to the drug", or equally "the passage of a drug through the body". The
@@ -1369,7 +1396,7 @@ const DATA={ topics:[
 
 /* ──────────────── M3 · Pharmacokinetics 2 ──────────────── */
 {
- id:'pk2', icon:'♻️', name:'PK 2 — Metabolism & Excretion', chapters:'Module 3 · PK (2) · Knights ch. 4–5',
+ id:'pk2', icon:'♻️', name:'PK 2 — Metabolism & Excretion', short:'PK 2 — Metabolism', chapters:'Module 3 · PK (2) · Knights ch. 4–5',
  tagline:'The liver changes the drug, the kidney throws it out — and together they set the half-life that decides your dosing regimen.',
  gist:`<b>Metabolism</b> (biotransformation) is the liver turning a drug into something water-soluble and usually inactive, so it can be thrown away. <b>Excretion</b> is physically removing it, mainly via the kidneys into urine. Together they are called <b>elimination</b>, and how fast elimination happens is <b>clearance</b>. The number that summarises all of it is the <b>half-life</b> — the time for the plasma concentration to fall by half. Give a drug repeatedly and after about <b>3–5 half-lives</b> the rate in equals the rate out: <b>steady state</b>. Everything about a dosing regimen exists to keep the concentration inside the <b>therapeutic range</b>.`,
  primer:`Two processes remove drug from the body, and the course names their combination precisely.
@@ -1540,7 +1567,7 @@ const DATA={ topics:[
 
 /* ──────────────────── M4 · Pharmacodynamics ──────────────────── */
 {
- id:'pd', icon:'🎯', name:'Pharmacodynamics', chapters:'Module 4 · Knights ch. 3, 5 & 7',
+ id:'pd', icon:'🎯', name:'Pharmacodynamics', short:'Pharmacodynamics', chapters:'Module 4 · Knights ch. 3, 5 & 7',
  tagline:'Four targets, five descriptors, one lock-and-key — and the reason "it works" and "it harms" are the same sentence.',
  gist:`Pharmacodynamics is <b>what the drug does to the body</b>, and how. Drugs act on four kinds of regulatory protein: <b>transporters</b>, <b>ion channels</b>, <b>enzymes</b> and <b>receptors</b>. At a receptor, a drug is either an <b>agonist</b> (fits the lock AND opens the door — affinity plus efficacy) or an <b>antagonist</b> (fits the lock but the door won't open — affinity, no efficacy). Five words describe any drug's action: <b>selectivity</b> (how many targets), <b>specificity</b> (how many effects), <b>affinity</b> (how tightly it binds), <b>efficacy</b> (how big a response it can produce) and <b>potency</b> (how little you need).`,
  primer:`Pharmacodynamics is the study of drug–target interactions, mechanisms of action, and the resulting biological effects
@@ -1728,7 +1755,7 @@ const DATA={ topics:[
 
 /* ──────────────── M5 · Administration: the Rights ──────────────── */
 {
- id:'admin', icon:'✅', name:'Administration — 8 Rights + 2 Checks', chapters:'Module 5 · Med Admin (1) · Potter & Perry ch. 19',
+ id:'admin', icon:'✅', name:'Administration — 8 Rights + 2 Checks', short:'Administration', chapters:'Module 5 · Med Admin (1) · Potter & Perry ch. 19',
  tagline:'Eight rights, two checks, three identifiers, three medication checks — and one rule that outranks all of them: you are responsible for what you give, whoever prescribed it.',
  gist:`Before any medication goes into a patient you work through <b>eight rights</b>: right patient, medication, dose, time, route, right to refuse, right indication, right documentation — plus <b>two checks</b>: expiry and allergies. The right patient needs <b>three identifiers</b>. The right medication is checked <b>three times</b>. The right time means within <b>30 minutes</b> of the scheduled time for regular medicines. And the rule underneath all of it: nurses are personally responsible — legally, morally and ethically — for every medication they administer, <b>no matter who prescribed it</b>.`,
  primer:`Start with who can do what. <b>Authorised prescribers</b>: doctors, nurse practitioners, dentists, optometrists and
@@ -1928,7 +1955,7 @@ const DATA={ topics:[
 
 /* ──────────── M5 · Errors, education & health literacy ──────────── */
 {
- id:'educ', icon:'🗣️', name:'Errors, Education & Health Literacy', chapters:'Module 5 · Med Admin (2) · HQSC three steps',
+ id:'educ', icon:'🗣️', name:'Errors, Education & Health Literacy', short:'Errors & Education', chapters:'Module 5 · Med Admin (2) · HQSC three steps',
  tagline:'Ask, Build, Check — three steps that put the responsibility for being understood on you, not on the patient.',
  gist:`A <b>medication error</b> is any <i>preventable</i> event that may cause or lead to inappropriate medication use or patient harm — and most of them trace back to an inconsistency in the 8 Rights + 2 Checks. If you make one: acknowledge it immediately, report it, document it objectively, act to minimise harm, and complete an incident report. Concealing it puts the patient at risk and gets you disciplined. On the education side, the course teaches the HQSC's three steps — <b>Ask</b> what they already know, <b>Build</b> on it, <b>Check</b> you were clear — and the check is a test of <i>your</i> communication, never of the patient's intelligence.`,
  primer:`<b>Errors first.</b> A medication error is <i>"any preventable event that may cause or lead to inappropriate medication
@@ -2113,7 +2140,7 @@ const DATA={ topics:[
 
 /* ──────────── M6 · The older adult & polypharmacy ──────────── */
 {
- id:'elderly', icon:'👵', name:'The Older Adult & Polypharmacy', chapters:'Module 6 · Knights ch. 41 · Potter & Perry ch. 30',
+ id:'elderly', icon:'👵', name:'The Older Adult & Polypharmacy', short:'The Older Adult', chapters:'Module 6 · Knights ch. 41 · Potter & Perry ch. 30',
  tagline:'12% of the population, 31% of the prescriptions — and a body that has quietly changed every step of ADME.',
  gist:`In Aotearoa an <b>older person</b> is 65+. They are about <b>12%</b> of the population but take <b>31%</b> of prescribed medications — on average 4–5 prescribed plus 2 over-the-counter. Ageing changes all four pharmacokinetic steps: absorption slows (rarely important), <b>distribution</b> changes a lot (more fat, less body water, less protein binding), and <b>metabolism and excretion both fall</b> — which is what actually causes harm, because drugs accumulate. <b>Polypharmacy</b> is taking five or more medicines at once, and it raises adverse effects, interactions, non-adherence, falls and mortality.`,
  primer:`Definitions first: an older person in Aotearoa NZ is <b>65 years and over</b> — "young-old" 65–79, "old-old" 80+, and
@@ -2314,7 +2341,7 @@ const DATA={ topics:[
 
 /* ──────────── M6 · Pregnancy, lactation & children ──────────── */
 {
- id:'lifespan', icon:'🤰', name:'Pregnancy, Lactation & Children', chapters:'Module 6 · Knights ch. 41 · Lifespan deck',
+ id:'lifespan', icon:'🤰', name:'Pregnancy, Lactation & Children', short:'Pregnancy & Children', chapters:'Module 6 · Knights ch. 41 · Lifespan deck',
  tagline:'Children are not miniature adults, the placenta is not a filter, and the first twelve weeks are the ones that matter most.',
  gist:`This session deliberately covers <b>pharmacokinetics only</b> — because PK changes in pregnancy and childhood are predictable, while PD changes are complex, highly variable and poorly defined in textbooks. In pregnancy, anything the pregnant person absorbs can reach the foetus, and the most vulnerable time is the <b>first few weeks</b>. A <b>teratogen</b> is any substance or factor that can cause developmental abnormalities, with highest risk in the <b>first trimester</b>. Children are physiologically different, not scaled-down: higher body water, immature enzymes, immature kidneys and an immature blood–brain barrier. Paediatric doses are <b>weight-based</b>.`,
  primer:`The deck opens with an unusually honest scoping note: there are both PK and PD changes in these groups, <b>but this
@@ -2507,7 +2534,7 @@ const DATA={ topics:[
 
 /* ──────────────── M7 · Legal & ethical ──────────────── */
 {
- id:'legal', icon:'⚖️', name:'Legal & Ethical Aspects', chapters:'Module 7 · Legal & Ethical deck',
+ id:'legal', icon:'⚖️', name:'Legal & Ethical Aspects', short:'Legal & Ethical', chapters:'Module 7 · Legal & Ethical deck',
  tagline:'Three Acts, six pou, eight principles of conduct and sixteen ethical values — and three real nurses who lost their registration.',
  gist:`Three Acts govern medicines in Aotearoa. The <b>Medicines Act 1981</b> covers all medicines, classifies them, and defines who can prescribe. The <b>Misuse of Drugs Act 1975</b> defines controlled drugs in classes A, B and C, and sets penalties. The <b>Health Practitioners Competence Assurance Act 2003</b> protects public safety by requiring scopes of practice, annual practising certificates, clinical and cultural competence, and disciplinary accountability. On top of the law sit the Nursing Council's <b>six pou</b> and <b>eight Code of Conduct principles</b>, and the NZNO <b>Code of Ethics</b> with its seven Māori and nine Western values.`,
  primer:`Start with the vocabulary, because the exam can ask it directly. <b>Acts (statutes)</b> are laws made by parliament.
@@ -2741,7 +2768,7 @@ const DATA={ topics:[
 
 /* ──────────── M7 extra · Drug development & marketing ──────────── */
 {
- id:'devmkt', icon:'🔬', name:'Drug Development & Marketing', chapters:'Module 7 · Drug Development & Marketing deck',
+ id:'devmkt', icon:'🔬', name:'Drug Development & Marketing', short:'Drug Development', chapters:'Module 7 · Drug Development & Marketing deck',
  tagline:'Five in five thousand make it to human testing, four phases of trial stand between a compound and a pharmacy — and New Zealand is one of only two developed countries where the finished product can be advertised to you directly.',
  gist:`Developing a drug costs millions and takes <b>10–20 years</b>; of 5000 compounds only about <b>5</b> reach human testing. The pathway is discovery → preclinical → <b>four phases</b> of clinical trial → Medsafe review → post-market monitoring, and the phases work like a funnel (roughly 70% of Phase 1 drugs progress, then ~33%, then 25–30%). Trials raise four ethical issues: <b>informed consent</b>, <b>placebo</b> use, <b>randomisation</b> and <b>protection of vulnerable patients</b>. And NZ is one of only <b>two</b> developed countries that permits direct-to-consumer advertising of prescription medicines.`,
  primer:`Some drugs were found by accident, and the deck's three examples make the point that a "side" effect can become the
@@ -2912,7 +2939,7 @@ const DATA={ topics:[
 
 /* ──────────── M8 · Anaphylaxis (partial module) ──────────── */
 {
- id:'allergy', icon:'🐝', name:'Anaphylaxis & the ASCIA Plan', chapters:'Module 8 · ASCIA Action Plan for Anaphylaxis (2026)',
+ id:'allergy', icon:'🐝', name:'Anaphylaxis & the ASCIA Plan', short:'Anaphylaxis', chapters:'Module 8 · ASCIA Action Plan for Anaphylaxis (2026)',
  tagline:'One drug, given first, lying flat — the shortest algorithm in the course and the one you cannot get wrong.',
  gist:`Anaphylaxis is the emergency at the sharp end of everything else in this paper: a drug allergy is a <b>contraindication</b>, and this is what happens when one is missed. The ASCIA plan is six steps. <b>Lay the person flat</b> — never let them stand or walk. <b>Give the adrenaline device</b>. Phone the ambulance (111 in NZ). Phone family or the emergency contact. Further adrenaline may be given after 5 minutes if there is no response. Transfer to hospital for at least 4 hours of observation. And the rule that overrides hesitation: <b>if in doubt, give the adrenaline device</b>.`,
  primer:`This topic is built from the <b>only</b> Module 8 teaching artefact in the Canvas export — the ASCIA Action Plan for
@@ -4301,26 +4328,8 @@ const DONE=jget('done',{});
    time — genuinely the last thing you should meet, so Core does not list them.
    (A deep link straight to ?tab=cases still resolves; see BOOT.) */
 const TABS=()=>[{id:'start',icon:'🧭',name:'Start Here'}]
-  .concat((DATA.topics||[]).map(x=>({id:x.id,icon:x.icon,name:x.name})))
-  .concat(isCore()?[]:[{id:'cases',icon:'📁',name:'Case Studies'}]);
-
-/* Keeps the one-row mobile strip honest: the selected tab is scrolled into view
-   (silently on first paint, smoothly thereafter), and the right-edge fade is
-   dropped once there is nothing further to scroll to, so it reads as "more this
-   way" rather than as permanent chrome. No-ops on wide screens, where the strip
-   still wraps and nothing overflows. */
-let tabStripPainted=false;
-function syncTabStrip(){
-  const el=$('#tabs'); if(!el) return;
-  const fade=()=>el.classList.toggle('atEnd', el.scrollWidth-el.clientWidth-el.scrollLeft<=1);
-  if(!el.dataset.bound){ el.dataset.bound='1'; el.addEventListener('scroll',fade,{passive:true}); }
-  const on=el.querySelector('.tab.on');
-  if(on&&el.scrollWidth>el.clientWidth){
-    const to=Math.max(0,on.offsetLeft-(el.clientWidth-on.offsetWidth)/2);
-    el.scrollTo({left:to,behavior:tabStripPainted?'smooth':'auto'});
-  }
-  tabStripPainted=true; fade();
-}
+  .concat((DATA.topics||[]).map(x=>({id:x.id,icon:x.icon,name:x.name,short:x.short||x.name,sub:x.chapters})))
+  .concat(isCore()?[]:[{id:'cases',icon:'📁',name:'Case Studies',short:'Cases'}]);
 
 function tabs(){
   /* In Core the tab strip doubles as the progress map: a ✓ replaces the icon on
@@ -4328,22 +4337,96 @@ function tabs(){
      (Full's "I've worked through this" tick) is a self-report, so it stays out
      of Core, where the ✓ has to mean recall. */
   $('#tabs').innerHTML=TABS().map(x=>{
-    if(!isCore()) return `<button class="tab${view===x.id?' on':''}" data-t="${x.id}">${x.icon} ${esc(x.name)}${
+    const lbl=esc(x.short||x.name), ttl=escA(x.name);
+    if(!isCore()) return `<button class="tab${view===x.id?' on':''}" data-t="${x.id}" title="${ttl}">${x.icon} ${lbl}${
       DONE[x.id]?'<span class="dot"></span>':''}</button>`;
     const isTopic=(DATA.topics||[]).some(t=>t.id===x.id);
     const p=isTopic?coreHeld(x.id):null;
     const nxt=nextCoreTopic();
     return `<button class="tab${view===x.id?' on':''}${p&&p.done?' cdone':''}${
-      nxt&&nxt.id===x.id?' cnext':''}" data-t="${x.id}">${
-      p&&p.done?'✓':x.icon} ${esc(x.name)}</button>`;
+      nxt&&nxt.id===x.id?' cnext':''}" data-t="${x.id}" title="${ttl}">${
+      p&&p.done?'✓':x.icon} ${lbl}</button>`;
   }).join('');
   $('#tabs').querySelectorAll('[data-t]').forEach(b=>{
     b.onclick=()=>{ view=b.dataset.t; jset('tab',view); draw(); window.scrollTo(0,0); };
   });
-  syncTabStrip();
+  centreTab();
   const mb=$('#modeBtn');
   if(mb){ mb.textContent=isCore()?'Core':'Full'; mb.className='modeBtn '+(isCore()?'core':'full'); }
 }
+
+/* Where the strip is a rail (phones), the chip you are on has to be the one you
+   can see — otherwise every tap leaves the strip showing somewhere you aren't.
+   Measured off bounding rects, so it does not care what the offsetParent is,
+   and it no-ops on the wrapped desktop strip, which never overflows. */
+function centreTab(){
+  const strip=$('#tabs'); if(!strip) return;
+  const on=strip.querySelector('.tab.on');
+  if(on&&strip.scrollWidth>strip.clientWidth+1){
+    const s=strip.getBoundingClientRect(), r=on.getBoundingClientRect();
+    strip.scrollLeft += (r.left-s.left) - (s.width-r.width)/2;
+  }
+  railFade();
+}
+function railFade(){
+  const strip=$('#tabs'); if(!strip) return;
+  const more=strip.scrollWidth-strip.clientWidth;
+  strip.classList.toggle('fadeL', more>2 && strip.scrollLeft>2);
+  strip.classList.toggle('fadeR', more>2 && strip.scrollLeft<more-2);
+}
+
+/* ── the topic index ──────────────────────────────────────────────────────
+   The rail's other half: ☰ opens every topic at once, in course order, so
+   nothing is more than two taps away even when the strip is scrolled off.
+   Rows are Core's rows, and they carry Core's progress when Core is on. */
+function showTopicPicker(){
+  const core=isCore(), nxt=core?nextCoreTopic():null;
+  const rows=TABS().map(x=>{
+    const isTopic=(DATA.topics||[]).some(t=>t.id===x.id);
+    const p=core&&isTopic?coreHeld(x.id):null;
+    const sub=core&&p?`${p.held}/${p.total} spine relations held`
+      :(x.sub||(x.id==='start'?'The short way in':'Nine whole-topic cases'));
+    return `<button class="coreRow${view===x.id?' cur':''}${p&&p.done?' done':''}${
+      !core&&DONE[x.id]?' done':''}" data-t="${x.id}">
+      <span class="coreRowIc">${p&&p.done?'✓':x.icon}</span>
+      <span class="coreRowNm">${esc(x.name)}<span class="coreRowSub">${esc(sub)}</span></span>
+      ${view===x.id?'<span class="pickHere">Here</span>'
+        :(nxt&&nxt.id===x.id?'<span class="pickHere">Next</span>'
+        :(!core&&DONE[x.id]?'<span class="dot"></span>':''))}
+    </button>`;
+  }).join('');
+  const m=document.createElement('div'); m.className='modal';
+  m.innerHTML=`<div class="sheet">
+    <span class="x" data-a="x">×</span>
+    <h3>Jump to a topic</h3>
+    <p class="lead">Introduction to Pharmacology, in course order.</p>
+    <div class="pickList"><div class="coreRows" style="margin-top:0">${rows}</div></div>
+  </div>`;
+  const close=()=>{ m.remove(); document.removeEventListener('keydown',onKey); };
+  const onKey=e=>{ if(e.key==='Escape') close(); };
+  m.addEventListener('click',e=>{
+    if(e.target===m) return close();
+    if(e.target.closest('[data-a="x"]')) return close();
+    const el=e.target.closest('[data-t]'); if(!el) return;
+    close();
+    if(view===el.dataset.t) return;
+    view=el.dataset.t; jset('tab',view); draw(); window.scrollTo(0,0);
+  });
+  document.addEventListener('keydown',onKey);
+  document.body.appendChild(m);
+  /* Open on where you are, not on the top of the list — with fifteen rows in a
+     capped box, "Here" is usually below the fold. */
+  const list=m.querySelector('.pickList'), cur=m.querySelector('.coreRow.cur');
+  if(list&&cur){
+    const lr=list.getBoundingClientRect(), cr=cur.getBoundingClientRect();
+    list.scrollTop += (cr.top-lr.top) - (lr.height-cr.height)/2;
+  }
+}
+$('#btnTopics').onclick=()=>showTopicPicker();
+$('#tabs').addEventListener('scroll',railFade,{passive:true});
+/* A rail that is re-centred only on tap would drift out of true when the phone
+   is turned; recentring on resize costs nothing and keeps the two in step. */
+addEventListener('resize',centreTab);
 
 /* ── the mode chooser ──────────────────────────────────────────────────────
    Shown once, on the first visit, and reachable forever after from the header
