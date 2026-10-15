@@ -10,10 +10,14 @@
 /* ── house palette: Giga's Liquid theme (see estate DESIGN-SYSTEM.md). Values
    are Giga's; only the scope selectors are remapped. ── */
 :root{
-  --bg:#161719; --card:#1c1c1f; --card2:#242427; --raised:#2c2c30;
+  /* the paper's colour (15 Oct 2026): Pharm's purple, as on jeremyspm.github.io. The page takes a soft tint of it, the
+     title bar and the start banner wear it solid, and the accent comes from it (it was the house indigo) */
+  --paper:#9333ea;
+  --bg:color-mix(in srgb,var(--paper) 7%,#161719); --card:#1c1c1f; --card2:#242427; --raised:#2c2c30;
   --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.15);
   --tx:#f2f2f6; --tx2:rgba(255,255,255,.56); --tx3:rgba(255,255,255,.34);
-  --acc:#6366F1; --acc2:#565AE6; --acc-tx:#818CF8; --acc-soft:rgba(99,102,241,.16);
+  --acc:color-mix(in srgb,var(--paper) 88%,#000); --acc2:color-mix(in srgb,var(--paper) 76%,#000);
+  --acc-tx:color-mix(in srgb,var(--paper) 70%,#fff); --acc-soft:color-mix(in srgb,var(--paper) 16%,transparent);
   --good:#32D74B; --hard:#FF9F0A; --bad:#FF453A; --cyan:#37c7e6;
   --shadow:0 14px 36px rgba(0,0,0,.16);
   --r:14px; --maxw:820px;
@@ -26,10 +30,11 @@
   --mm-focus-ring:#f59e0b; --mm-focus-halo:rgba(245,158,11,.45);
 }
 html[data-theme="light"]{
-  --bg:#eceef3; --card:#ffffff; --card2:#f4f5f7; --raised:#ffffff;
+  --bg:color-mix(in srgb,var(--paper) 7%,#eceef3); --card:#ffffff; --card2:#f4f5f7; --raised:#ffffff;
   --line:rgba(0,0,0,.10); --line2:rgba(0,0,0,.14);
   --tx:#16161a; --tx2:rgba(0,0,0,.52); --tx3:rgba(0,0,0,.34);
-  --acc:#4F46E5; --acc2:#4138CF; --acc-tx:#4F46E5; --acc-soft:rgba(79,70,229,.12);
+  --acc:color-mix(in srgb,var(--paper) 88%,#000); --acc2:color-mix(in srgb,var(--paper) 76%,#000);
+  --acc-tx:color-mix(in srgb,var(--paper) 80%,#000); --acc-soft:color-mix(in srgb,var(--paper) 12%,transparent);
   /* --good/--hard/--bad stay DARKER than Giga's light twin on purpose: here they
      also colour body text on white, where Giga's #28CD41 fails contrast. */
   --good:#12833A; --hard:#A35C00; --bad:#C62A20; --cyan:#2a7d8c;
@@ -48,8 +53,30 @@ a{color:var(--acc-tx)}
 .wrap{max-width:var(--maxw);margin:0 auto;padding:18px 16px 70px}
 
 /* ---- header + tabs ---- */
-header{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--line);
-  padding-top:env(safe-area-inset-top)}
+header{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--line)}
+/* the title row is a solid bar in the paper's colour (15 Oct 2026); the topic tabs stay below it on the page */
+.paperbar{padding-top:env(safe-area-inset-top);margin-bottom:10px;color:#fff;
+  background:linear-gradient(100deg,color-mix(in srgb,var(--paper) 72%,#000),color-mix(in srgb,var(--paper) 88%,#000));
+  box-shadow:0 4px 18px -8px color-mix(in srgb,var(--paper) 60%,transparent)}
+.paperbar .brand small{color:rgb(255 255 255 / .8)}
+.paperbar .iconbtn,.paperbar .modeBtn{color:#fff;background:rgb(255 255 255 / .1);border-color:rgb(255 255 255 / .3)}
+.paperbar .iconbtn:hover,.paperbar .modeBtn:hover{color:#fff;background:rgb(255 255 255 / .2);border-color:rgb(255 255 255 / .45)}
+.paperbar .modeBtn.core{background:rgb(255 255 255 / .24);border-color:rgb(255 255 255 / .55)}
+/* the start banner: the tool's name in giant type on the paper's colour, its emoji as a watermark */
+.idcard{position:relative;overflow:hidden;margin:0 0 14px;padding:20px 22px;border-radius:18px;color:#fff;
+  background:radial-gradient(90% 130% at 100% 0%,rgb(255 255 255 / .2),transparent 60%),
+    linear-gradient(135deg,color-mix(in srgb,var(--paper) 94%,#fff),color-mix(in srgb,var(--paper) 72%,#000));
+  box-shadow:0 14px 34px -16px color-mix(in srgb,var(--paper) 80%,transparent)}
+.idcard .idic{position:absolute;right:-8px;bottom:-30px;font-size:7.5rem;line-height:1;opacity:.22;transform:rotate(-14deg);pointer-events:none}
+.idcard small{position:relative;display:block;font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgb(255 255 255 / .86)}
+.idcard b{position:relative;display:block;font-size:clamp(2.3rem,7vw,3.4rem);line-height:.95;margin:6px 0 8px;font-weight:900;letter-spacing:-.03em;text-transform:uppercase}
+.idcard>span:not(.idic){position:relative;display:block;font-size:.88rem;color:rgb(255 255 255 / .9);line-height:1.35}
+@media (max-width:560px){
+  .idcard{padding:14px 16px;margin-bottom:10px;border-radius:14px}
+  .idcard .idic{font-size:5.5rem;bottom:-20px}
+  .idcard b{font-size:2.1rem;margin:4px 0 6px}
+  .idcard>span:not(.idic){font-size:.8rem}
+}
 .top{max-width:var(--maxw);margin:0 auto;display:flex;align-items:center;gap:10px;padding:10px 16px}
 .brand{min-width:0;font-weight:800;font-size:14px;letter-spacing:-.2px;line-height:1.25}
 .brand small{display:block;font-weight:500;font-size:11px;color:var(--tx3);letter-spacing:0}
@@ -656,13 +683,13 @@ html.metro-fs,html.metro-fs body{overflow:hidden}
 </style>
 <body>
 <header>
-  <div class="top">
-    <a class="iconbtn" href="https://jeremyspm.github.io/" title="Back to the BN Hub">←</a>
+  <div class="paperbar"><div class="top">
+    <a class="iconbtn" href="https://jeremyspm.github.io/" title="All the BN2 study tools">‹ All tools</a>
     <div class="brand">Intro to Pharmacology<small>BN2 · 722.544</small></div>
     <div style="flex:1"></div>
     <button class="modeBtn" id="modeBtn" title="Core or Full — switch any time, nothing is lost">Full</button>
     <button class="iconbtn" id="btnTheme" title="Light / dark">◐</button>
-  </div>
+  </div></div>
   <div class="tabbar">
     <nav class="tabs" id="tabs" aria-label="Topics"></nav>
     <button class="iconbtn tabAll" id="btnTopics" title="All topics" aria-label="All topics">☰</button>
@@ -5108,7 +5135,7 @@ function coreStartView(){
         <span class="coreRowSub">${p.held} of ${p.total} links</span></span>
       <span class="coreRing" style="--p:${p.pct}"></span></button>`;
   }).join('');
-  return `<div class="card">
+  return `${idBanner()}<div class="card">
     <div class="coreCrumb"><span class="modeTag">Core</span></div>
     <h2>🧭 Pharmacology, the short way</h2>
     <div class="big-idea">Thirteen topics, each boiled down to the few pathways the rest of it hangs off.
@@ -5145,6 +5172,8 @@ function coreStartView(){
 }
 
 /* ── Start Here ── */
+/* the start screen's banner (15 Oct 2026): the tool's name in giant type on Pharm's purple */
+const idBanner = () => `<div class="idcard"><span class="idic" aria-hidden="true">💊</span><small>Intro to Pharmacology · 722.544</small><b>Pharmacology Hub</b><span>All 13 topics · metro maps, pathways and recall</span></div>`;
 function startView(){
   if(isCore()) return coreStartView();
   const now=Date.now();
@@ -5167,7 +5196,7 @@ function startView(){
   const nMcq=(DATA.topics||[]).reduce((s,t)=>s+(t.mcq||[]).length,0);
   const nCaseQ=(DATA.cases||[]).reduce((s,c)=>s+(c.qs||[]).length,0);
 
-  return `<div class="card">
+  return `${idBanner()}<div class="card">
     <h2>🧭 Start here</h2>
     <div class="big-idea">The whole of <b>722.544 Introduction to Pharmacology</b>, rebuilt from your Canvas
       material, with a metro map for every topic and a drill that hides more of the pathway as you earn it.</div>
